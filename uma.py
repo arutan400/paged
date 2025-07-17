@@ -1,36 +1,4 @@
-# -*- encoding=utf8 -*-
-from airtest.core.api import (
-    auto_setup, connect_device,
-    Template, exists, touch,
-    wait, sleep
-)
-import time
-
-# ── 初期設定 ──
-auto_setup(__file__, devices=["Android:///"])  # Androidデバイス（エミュレータ／実機）に接続
-
-# ── 汎用操作関数 ──
-def wait_and_touch(img_path, timeout=15, threshold=0.8):
-    """指定画像が表示されるまで待ってタップ"""
-    wait(Template(img_path, threshold=threshold), timeout=timeout)
-    touch(Template(img_path, threshold=threshold))
-    sleep(0.5)
-
-def skip_all(skip_imgs=("images/skip.png", "images/next.png")):
-    """スキップ／次へボタンを連打"""
-    for img in skip_imgs:
-        while exists(Template(img, threshold=0.8)):
-            touch(Template(img, threshold=0.8))
-            sleep(0.3)
-
-# ── URAシナリオ開始 ──
-def start_ura():
-    """URAシナリオの開始ボタンをタップ"""
-    wait_and_touch("images/ura_start.png")  # URA育成開始画面
-    skip_all()
-
-# ── イベント対応 ──
-def handle_event(option_img="images/event_option.png"):
+ef handle_event(option_img="images/event_option.png"):
     """割り込みイベントで常に同じ選択肢をタップ"""
     if exists(Template(option_img, threshold=0.8)):
         touch(Template(option_img, threshold=0.8))
