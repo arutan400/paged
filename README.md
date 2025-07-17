@@ -1,76 +1,49 @@
-# paged
-# -*- encoding=utf8 -*-
-from airtest.core.api import auto_setup, connect_device, Template, exists, touch, wait, swipe
-from poco.drivers.unity3d import UnityPoco
-import time
-
-# ── 初期設定 ──
-auto_setup(__file__, devices=["Android:///"])    # エミュレータ or 実機を接続
-poco = UnityPoco()                              # UnityPoco ドライバを初期化
-
-# ── 汎用操作関数 ──
-def wait_and_touch(img_path, timeout=15, threshold=0.8):
-    """画像が出るまで待ってタップ"""
-    wait(Template(img_path, threshold=threshold), timeout=timeout)
-    touch(Template(img_path, threshold=threshold))
-    time.sleep(1)
-
-def skip_all():
-    """スキップや次へボタンを連打"""
-    for btn in ["images/skip.png", "images/next.png"]:
-        while exists(Template(btn, threshold=0.8)):
-            touch(Template(btn, threshold=0.8))
-            time.sleep(0.5)
-
-# ── 育成シナリオ操作 ──
-def start_training():
-    """育成開始ボタンを押す"""
-    if poco(name="育成開始").exists():
-        poco(name="育成開始").click()
-    else:
-        wait_and_touch("images/start_training.png")
-    time.sleep(2)
-
-def select_training():
-    """毎ターントレーニング選択"""
-    # ① スピード優先
-    if poco(text="スピード").exists():
-        poco(text="スピード").click()
-    # ② スタミナ
-    elif poco(text="スタミナ").exists():
-        poco(text="スタミナ").click()
-    # ③ 保健室
-    elif poco(text="保健室").exists():
-        poco(text="保健室").click()
-    # ④ 休む（スクロール→タップ）
-    else:
-        swipe((300, 1600), (300, 400), duration=0.5)
-        time.sleep(1)
-        poco(text="休む").click()
-    time.sleep(1)
-    # 決定ボタン
-    if poco(text="決定").exists():
-        poco(text="決定").click()
-    else:
-        touch(Template("images/confirm.png"))
-    time.sleep(1)
-
-def race_sequence():
-    """レース開始＆スキップ"""
-    if poco(text="レース開始").exists():
-        poco(text="レース開始").click()
-        time.sleep(1)
-    skip_all()
-
-# ── メイン処理 ──
-def main(turns=30):
-    start_training()
-    for i in range(turns):
-        print(f"{i+1}ターン目")
-        skip_all()
-        race_sequence()
-        select_training()
-    print("育成完了！")
-
-if __name__ == "__main__":
-    main(30)
+1.	初期設定
+・auto_setup(__file__, devices=["Android:///"])
+	•	Airtest の環境をセットアップし、Android エミュレータ／実機に接続します。
+	2.	汎用関数
+・wait_and_touch(img_path, timeout=15, threshold=0.8)
+	•	指定した画像が画面に出るまで待ち、タップします。
+・skip_all(skip_imgs=("images/skip.png","images/next.png"))
+	•	ムービーやポップアップを「スキップ」「次へ」で連打して読み飛ばします。
+	3.	シナリオ開始
+・start_ura(start_img="images/ura_start.png")
+	•	URA 育成開始ボタンをタップし、続くムービーを skip_all() でスキップします。
+	4.	イベント対応
+・handle_event(option_img="images/event_option.png")
+	•	通常イベントで常に同じ選択肢をタップします。
+・handle_skill_event(skill_img="images/skill_option.png", confirm_img="images/confirm_skill.png")
+	•	スキル獲得イベントで指定スキルを選び、確認までタップします。
+・handle_support_event(support_img="images/support_event.png")
+	•	サポートカードイベントで定型選択肢をタップします。
+・handle_injury_event(injury_img="images/injury_event.png", treat_img="images/treat_injury.png")
+	•	故障イベント発生時に「治療する」を選択してシナリオ継続を確保します。
+	5.	体力管理
+・rest_if_stamina_low(bar_img="images/stamina_blue.png", rest_img="images/rest.png")
+	•	体力バーが青色（低下）を示す画像を検出したら「お休み」をタップして回復します。
+	6.	練習選択
+・select_speed_training(speed_img="images/train_speed.png", confirm_img="images/confirm.png")
+	•	常に「スピード練習」を選択し、決定までタップします。
+	7.	アイテム使用
+・use_item(item_img="images/item_recovery.png", close_img="images/close_item.png")
+	•	回復アイテムがあれば使用し、アイテム画面を閉じます。
+	8.	レース処理
+・skip_race_info(info_ok="images/info_ok.png")
+	•	レース前の情報画面の「OK」をタップして読み飛ばします。
+・race_sequence(race_start="images/race_start.png")
+	•	レース開始ボタンをタップし、結果ムービーを skip_all()＋skip_race_info() でスキップします。
+	9.	完了判定
+・is_ura_finished(finish_img="images/ura_finish.png")
+	•	URA シナリオ終了画面を検出したら True を返し、メインループを抜けるトリガーとします。
+	10.	１ターンのまとめ処理
+・process_turn()
+	1.	skip_all()／skip_race_info() でムービー読み飛ばし
+	2.	handle_event()／handle_skill_event()／handle_support_event()／handle_injury_event() で各種イベント対応
+	3.	rest_if_stamina_low() で体力管理
+	4.	select_speed_training() でスピード練習
+	5.	use_item() でアイテム使用
+	6.	race_sequence() でレース開始～結果スキップ
+	11.	メインループ
+・main()
+	•	start_ura() で育成開始後、ターンをカウントしながら process_turn() を繰り返します。
+	•	is_ura_finished() が True になったらループを抜けて終了処理を行います。
