@@ -1,49 +1,99 @@
-1.	初期設定
-・auto_setup(__file__, devices=["Android:///"])
-	•	Airtest の環境をセットアップし、Android エミュレータ／実機に接続します。
-	2.	汎用関数
-・wait_and_touch(img_path, timeout=15, threshold=0.8)
-	•	指定した画像が画面に出るまで待ち、タップします。
-・skip_all(skip_imgs=("images/skip.png","images/next.png"))
-	•	ムービーやポップアップを「スキップ」「次へ」で連打して読み飛ばします。
-	3.	シナリオ開始
-・start_ura(start_img="images/ura_start.png")
-	•	URA 育成開始ボタンをタップし、続くムービーを skip_all() でスキップします。
-	4.	イベント対応
-・handle_event(option_img="images/event_option.png")
-	•	通常イベントで常に同じ選択肢をタップします。
-・handle_skill_event(skill_img="images/skill_option.png", confirm_img="images/confirm_skill.png")
-	•	スキル獲得イベントで指定スキルを選び、確認までタップします。
-・handle_support_event(support_img="images/support_event.png")
-	•	サポートカードイベントで定型選択肢をタップします。
-・handle_injury_event(injury_img="images/injury_event.png", treat_img="images/treat_injury.png")
-	•	故障イベント発生時に「治療する」を選択してシナリオ継続を確保します。
-	5.	体力管理
-・rest_if_stamina_low(bar_img="images/stamina_blue.png", rest_img="images/rest.png")
-	•	体力バーが青色（低下）を示す画像を検出したら「お休み」をタップして回復します。
-	6.	練習選択
-・select_speed_training(speed_img="images/train_speed.png", confirm_img="images/confirm.png")
-	•	常に「スピード練習」を選択し、決定までタップします。
-	7.	アイテム使用
-・use_item(item_img="images/item_recovery.png", close_img="images/close_item.png")
-	•	回復アイテムがあれば使用し、アイテム画面を閉じます。
-	8.	レース処理
-・skip_race_info(info_ok="images/info_ok.png")
-	•	レース前の情報画面の「OK」をタップして読み飛ばします。
-・race_sequence(race_start="images/race_start.png")
-	•	レース開始ボタンをタップし、結果ムービーを skip_all()＋skip_race_info() でスキップします。
-	9.	完了判定
-・is_ura_finished(finish_img="images/ura_finish.png")
-	•	URA シナリオ終了画面を検出したら True を返し、メインループを抜けるトリガーとします。
-	10.	１ターンのまとめ処理
-・process_turn()
-	1.	skip_all()／skip_race_info() でムービー読み飛ばし
-	2.	handle_event()／handle_skill_event()／handle_support_event()／handle_injury_event() で各種イベント対応
-	3.	rest_if_stamina_low() で体力管理
-	4.	select_speed_training() でスピード練習
-	5.	use_item() でアイテム使用
-	6.	race_sequence() でレース開始～結果スキップ
-	11.	メインループ
-・main()
-	•	start_ura() で育成開始後、ターンをカウントしながら process_turn() を繰り返します。
-	•	is_ura_finished() が True になったらループを抜けて終了処理を行います。
+# 🏇 ウマ娘 URAシナリオ自動育成スクリプト（Airtest + Python）
+
+このスクリプトは、ウマ娘の育成モード「URAファイナルズ」を **スピード練習のみで完走することを目的とした完全自動化ツール**です。  
+Airtest と Python を使用し、Android エミュレータ上で育成のすべての操作を自動で実行します。
+
+---
+
+## ✅ 主な機能
+
+- URA育成を開始から完了まで全自動で操作
+- トレーニングは毎ターン「スピード練習」のみを選択
+- 体力が青ゲージ（低下状態）のときは「お休み」を実行
+- イベント発生時は常に指定の選択肢画像を自動でタップ
+- スキルイベント、サポートイベントに対応
+- 故障イベントでは「治療する」を選択して継続
+- レース出走から結果スキップまでを自動処理
+- 回復アイテムも自動で使用可能
+
+---
+
+## 🛠 必要環境
+
+- Python 3.x  
+- Airtest（インストール: `pip install airtest`）  
+- Airtest IDE（https://airtest.netease.com/）  
+- Androidエミュレータ（例：BlueStacks / Nox）  
+- 画像テンプレートを保存する `images/` フォルダ
+
+---
+
+## 🖼 使用する画像テンプレート一覧
+
+下記の画像を Airtest IDE を使ってキャプチャし、`images/` フォルダに保存してください。
+
+| ファイル名                            | 内容                                |
+|--------------------------------------|-------------------------------------|
+| `ura_start.png`                      | 育成開始ボタン                      |
+| `skip.png`, `next.png`               | ムービー／イベントのスキップ       |
+| `event_option.png`                   | 通常イベントで選択したい項目       |
+| `skill_option.png`, `confirm_skill.png` | スキルイベント選択と確認ボタン |
+| `support_event.png`                  | サポートイベントの選択肢           |
+| `injury_event.png`, `treat_injury.png` | 故障発生時の画面と「治療する」   |
+| `stamina_blue.png`, `rest.png`       | 体力が青ゲージ時のお休み処理       |
+| `train_speed.png`, `confirm.png`     | スピード練習画面と決定ボタン       |
+| `item_recovery.png`, `close_item.png`| 回復アイテムと閉じるボタン         |
+| `info_ok.png`                        | レース情報確認の「OK」ボタン       |
+| `race_start.png`                     | レース開始ボタン                   |
+| `ura_finish.png`                     | URA育成完了の確認画像              |
+
+---
+
+## 🚀 スクリプトの動作概要
+
+このスクリプトは以下の流れで処理を進めます：
+
+1. Airtest で Android エミュレータに接続
+2. `ura_start.png` を使って育成を開始
+3. 毎ターン、スキップ操作で演出を飛ばしつつ処理を進行
+4. イベントが発生した場合は `event_option.png` を選択
+5. スキルイベントやサポートイベント発生時は対応画像をタップ
+6. 体力ゲージが青い場合は `rest.png` を押して休息
+7. `train_speed.png` を使ってスピード練習を選択、`confirm.png` で決定
+8. レース出走タイミングでは `race_start.png` → スキップ処理 → `info_ok.png` を処理
+9. 故障イベント（`injury_event.png`）が出たら `treat_injury.png` を押して治療
+10. アイテム（`item_recovery.png`）がある場合は使用し、`close_item.png` で閉じる
+11. `ura_finish.png` が表示されたらシナリオ完了として終了
+
+これらの処理を `main()` 関数内でループし、URA完走まで自動で進行します。
+
+---
+
+## 📌 実行方法
+
+1. Android エミュレータ上でウマ娘を起動しておく
+2. Airtest IDE でこのスクリプトを開く
+3. `images/` フォルダに上記のテンプレート画像を保存
+4. スクリプトを実行
+
+---
+
+## 📝 注意事項
+
+- **テンプレート画像は必ず自分の画面でキャプチャ**してください。異なる解像度・DPIでは認識精度が低下します。
+- `threshold=0.8` は画像認識のしきい値であり、反応が悪い場合は `0.7〜0.85` の間で調整してください。
+- 各関数の中で `sleep()` を挟んでいるのは、画面遷移の安定性を確保するためです。環境によっては時間を変更してください。
+
+---
+
+## 🏁 まとめ
+
+このスクリプトを使えば、**マルゼンスキーなどのウマ娘をスピード特化育成でURAファイナルズを完走するルーチンを完全自動化**できます。  
+イベント対応、体力管理、トラブル処理、レース進行といったすべての重要アクションに対応しているため、手動操作なしでも高確率で育成を完了できます。
+
+---
+
+## 👤 作者
+
+**Arutan**  
+GitHub: [https://github.com/arutan400](https://github.com/arutan400)
